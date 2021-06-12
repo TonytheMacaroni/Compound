@@ -1,11 +1,12 @@
 plugins {
     id 'java-library'
+    id 'maven-publish'
 
     id 'com.github.johnrengelman.shadow' version '7.0.0'
     id 'io.freefair.lombok' version '6.0.0-m2'
 }
 
-group = 'com.tonythemacaroni'
+group = 'com.tonythemacaroni.compound'
 version = '0.1.0'
 
 repositories {
