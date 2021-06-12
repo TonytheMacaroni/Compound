@@ -36,9 +36,8 @@ import com.tonythemacaroni.compound.util.LoadableComponent;
 
 public class CompoundPlugin extends JavaPlugin {
 
-    private Logger logger;
-
-    private Map<String, ComponentData> components;
+    protected Map<String, ComponentData> components;
+    protected Logger logger;
 
     @Override
     public void onEnable() {
@@ -180,6 +179,10 @@ public class CompoundPlugin extends JavaPlugin {
     public void onDisable() {
         components = null;
         logger = null;
+    }
+
+    public Object getComponent(String component) {
+        return components.get(component).getComponent();
     }
 
     public boolean loadComponent(ComponentData componentData) {
