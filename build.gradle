@@ -1,0 +1,46 @@
+plugins {
+    id 'java-library'
+
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id 'io.freefair.lombok' version '6.0.0-m2'
+}
+
+group = 'com.tonythemacaroni'
+version = '0.1.0'
+
+repositories {
+    mavenLocal()
+
+    maven { url = uri('https://hub.spigotmc.org/nexus/content/repositories/snapshots/') }
+    maven { url = uri('https://oss.sonatype.org/content/groups/public/') }
+    maven { url = uri('https://repo.maven.apache.org/maven2/') }
+}
+
+dependencies {
+    implementation 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
+    api 'io.github.classgraph:classgraph:4.8.108'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir 'src'
+        }
+    }
+}
+
+shadowJar {
+    archiveClassifier.set('')
+
+    relocate 'io.github.classgraph', 'shadow.io.github.classgraph'
+    relocate 'nonapi.io.github.classgraph', 'shadow.nonapi.io.github.classgraph'
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
