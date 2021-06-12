@@ -6,7 +6,7 @@ plugins {
     id 'io.freefair.lombok' version '6.0.0-m2'
 }
 
-group = 'com.tonythemacaroni.compound'
+group = 'com.tonythemacaroni'
 version = '0.1.0'
 
 repositories {
