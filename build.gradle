@@ -46,7 +46,7 @@ publishing {
     publications {
         shadow(MavenPublication) { publication ->
             project.shadow.component(publication)
-            artifactId = 'compound'
+            artifactId = 'Compound'
         }
     }
 }
