@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Config {
 
-    String config() default "";
+    String path() default "";
 
     String key() default "";
 

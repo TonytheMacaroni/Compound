@@ -9,7 +9,7 @@ import java.lang.annotation.RetentionPolicy;
 
 @Target({ElementType.FIELD})
 @Retention(RetentionPolicy.RUNTIME)
-public @interface Resolver {
+public @interface Resolve {
 
     Class<? extends Function<?, ?>> resolver();
 

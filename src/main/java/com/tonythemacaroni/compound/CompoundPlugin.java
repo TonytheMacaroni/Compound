@@ -31,7 +31,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 
 import com.tonythemacaroni.compound.annotations.Config;
 import com.tonythemacaroni.compound.util.ComponentData;
-import com.tonythemacaroni.compound.annotations.Resolver;
+import com.tonythemacaroni.compound.annotations.Resolve;
 import com.tonythemacaroni.compound.util.LoadableComponent;
 
 public class CompoundPlugin extends JavaPlugin {
@@ -218,7 +218,7 @@ public class CompoundPlugin extends JavaPlugin {
 
         Config classConfig = objectClass.getAnnotation(Config.class);
         if (classConfig != null) {
-            defaultPath = classConfig.config();
+            defaultPath = classConfig.path();
             defaultConfig = loadConfig(defaultPath);
         }
 
@@ -230,11 +230,11 @@ public class CompoundPlugin extends JavaPlugin {
             String key = config.key().isEmpty() ? field.getName() : config.key();
             YamlConfiguration fieldConfig;
             String path;
-            if (config.config().isEmpty()) {
+            if (config.path().isEmpty()) {
                 path = defaultPath;
                 fieldConfig = defaultConfig;
             } else {
-                path = config.config();
+                path = config.path();
                 fieldConfig = loadConfig(path);
             }
 
@@ -250,15 +250,15 @@ public class CompoundPlugin extends JavaPlugin {
                 continue;
             }
 
-            Resolver resolver = field.getAnnotation(Resolver.class);
+            Resolve resolve = field.getAnnotation(Resolve.class);
             Class<?> fieldType = field.getType();
             Object obj;
-            if (resolver != null) {
-                Class<? extends Function<?, ?>> resolverClass = resolver.resolver();
-                Class<?> fromClass = resolver.from();
+            if (resolve != null) {
+                Class<? extends Function<?, ?>> resolver = resolve.resolver();
+                Class<?> fromClass = resolve.from();
 
                 try {
-                    Method apply = resolverClass.getMethod("apply", fromClass);
+                    Method apply = resolver.getMethod("apply", fromClass);
 
                     if (!fieldType.isAssignableFrom(apply.getReturnType())) {
                         logger.warning("Resolver for key '" + key + "' of field '" + field.getName()
@@ -273,7 +273,7 @@ public class CompoundPlugin extends JavaPlugin {
                         continue;
                     }
 
-                    Function<?, ?> resolverInstance = resolverClass.newInstance();
+                    Function<?, ?> resolverInstance = resolver.newInstance();
                     obj = apply.invoke(resolverInstance, from);
                 } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
                     logger.warning("Invalid resolver for key '" + key + "' of field '" + field.getName()
