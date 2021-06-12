@@ -38,8 +38,8 @@ sourceSets {
 shadowJar {
     archiveClassifier.set('')
 
-    relocate 'io.github.classgraph', 'shadow.io.github.classgraph'
-    relocate 'nonapi.io.github.classgraph', 'shadow.nonapi.io.github.classgraph'
+    relocate 'io.github.classgraph', 'com.tonythemacaroni.compound.shaded.io.github.classgraph'
+    relocate 'nonapi.io.github.classgraph', 'com.tonythemacaroni.compound.shaded.nonapi.io.github.classgraph'
 }
 
 publishing {
