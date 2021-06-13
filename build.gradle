@@ -18,21 +18,13 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
-    api 'io.github.classgraph:classgraph:4.8.108'
+    compileOnly 'org.spigotmc:spigot-api:1.16.5-R0.1-SNAPSHOT'
+    shadow 'io.github.classgraph:classgraph:4.8.108'
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
-}
-
-sourceSets {
-    main {
-        java {
-            srcDir 'src'
-        }
-    }
 }
 
 shadowJar {
