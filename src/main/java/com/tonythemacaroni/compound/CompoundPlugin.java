@@ -289,7 +289,8 @@ public class CompoundPlugin extends JavaPlugin {
                 continue;
             }
 
-            if (obj instanceof String) obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
+            if (obj instanceof String && config.colorize())
+                obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
 
             try {
                 field.setAccessible(true);
