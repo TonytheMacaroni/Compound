@@ -211,19 +211,24 @@ public class CompoundPlugin extends JavaPlugin {
     }
 
     public void injectConfig(Object object) {
-        injectConfig(object, "");
+        injectConfig(object, null, null);
     }
 
-    public void injectConfig(Object object, String baseKey) {
+    public void injectConfig(Object object, String defaultPath, String baseKey) {
         Class<?> objectClass = object.getClass();
 
         YamlConfiguration defaultConfig = null;
-        String defaultPath = null;
-
-        Config classConfig = objectClass.getAnnotation(Config.class);
-        if (classConfig != null) {
-            defaultPath = classConfig.path();
+        if (defaultPath != null) {
             defaultConfig = loadConfig(defaultPath);
+        }
+
+        YamlConfiguration classConfig = null;
+        String classPath = null;
+
+        Config configClass = objectClass.getAnnotation(Config.class);
+        if (configClass != null) {
+            classPath = configClass.path();
+            classConfig = loadConfig(classPath);
         }
 
         Field[] fields = objectClass.getDeclaredFields();
@@ -232,16 +237,19 @@ public class CompoundPlugin extends JavaPlugin {
             if (config == null) continue;
 
             String key = config.key().isEmpty() ? field.getName() : config.key();
-            if (!baseKey.isEmpty()) key = baseKey + "." + key;
+            if (baseKey != null) key = baseKey + "." + key;
 
             YamlConfiguration fieldConfig;
             String path;
-            if (config.path().isEmpty()) {
-                path = defaultPath;
-                fieldConfig = defaultConfig;
-            } else {
+            if (!config.path().isEmpty()) {
                 path = config.path();
                 fieldConfig = loadConfig(path);
+            } else if (classConfig != null) {
+                path = classPath;
+                fieldConfig = classConfig;
+            } else {
+                path = defaultPath;
+                fieldConfig = defaultConfig;
             }
 
             if (fieldConfig == null) {
