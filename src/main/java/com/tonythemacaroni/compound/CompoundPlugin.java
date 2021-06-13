@@ -211,6 +211,10 @@ public class CompoundPlugin extends JavaPlugin {
     }
 
     public void injectConfig(Object object) {
+        injectConfig(object, "");
+    }
+
+    public void injectConfig(Object object, String baseKey) {
         Class<?> objectClass = object.getClass();
 
         YamlConfiguration defaultConfig = null;
@@ -228,6 +232,8 @@ public class CompoundPlugin extends JavaPlugin {
             if (config == null) continue;
 
             String key = config.key().isEmpty() ? field.getName() : config.key();
+            if (!baseKey.isEmpty()) key = baseKey + "." + key;
+
             YamlConfiguration fieldConfig;
             String path;
             if (config.path().isEmpty()) {
