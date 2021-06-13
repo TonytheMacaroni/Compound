@@ -245,8 +245,9 @@ public class CompoundPlugin extends JavaPlugin {
             }
 
             if (!fieldConfig.contains(key)) {
-                logger.warning("Config '" + path + "' does not contain key '" + key
-                    + "' for field '" + field.getName() + "' in class '" + objectClass.getName() + "'.");
+                if (config.required())
+                    logger.warning("Config '" + path + "' does not contain key '" + key + "' for field '"
+                        + field.getName() + "' in class '" + objectClass.getName() + "'.");
                 continue;
             }
 

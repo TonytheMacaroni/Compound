@@ -15,4 +15,6 @@ public @interface Config {
 
     boolean colorize() default false;
 
+    boolean required() default false;
+
 }
