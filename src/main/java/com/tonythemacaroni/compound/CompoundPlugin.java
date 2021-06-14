@@ -220,7 +220,7 @@ public class CompoundPlugin extends JavaPlugin {
         YamlConfiguration defaultConfig = null;
         if (defaultPath != null) defaultConfig = loadConfig(defaultPath);
 
-        while (objectClass != null) {
+        while (objectClass != Object.class) {
             YamlConfiguration classConfig = null;
             String classPath = null;
 
