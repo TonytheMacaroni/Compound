@@ -27,6 +27,7 @@ import io.github.classgraph.AnnotationParameterValueList;
 
 import org.bukkit.ChatColor;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import com.tonythemacaroni.compound.annotations.Config;
@@ -211,14 +212,18 @@ public class CompoundPlugin extends JavaPlugin {
     }
 
     public void injectConfig(Object object) {
-        injectConfig(object, null, null);
+        injectConfig(object, null, null,null);
     }
 
     public void injectConfig(Object object, String defaultPath, String baseKey) {
-        Class<?> objectClass = object.getClass();
-
         YamlConfiguration defaultConfig = null;
         if (defaultPath != null) defaultConfig = loadConfig(defaultPath);
+
+        injectConfig(object, defaultConfig, defaultPath, baseKey);
+    }
+
+    public void injectConfig(Object object, ConfigurationSection defaultConfig, String defaultPath, String baseKey) {
+        Class<?> objectClass = object.getClass();
 
         while (objectClass != Object.class) {
             YamlConfiguration classConfig = null;
@@ -238,7 +243,7 @@ public class CompoundPlugin extends JavaPlugin {
                 String key = config.key().isEmpty() ? field.getName() : config.key();
                 if (baseKey != null) key = baseKey + "." + key;
 
-                YamlConfiguration fieldConfig;
+                ConfigurationSection fieldConfig;
                 String path;
                 if (!config.path().isEmpty()) {
                     path = config.path();
