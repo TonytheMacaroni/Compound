@@ -218,102 +218,104 @@ public class CompoundPlugin extends JavaPlugin {
         Class<?> objectClass = object.getClass();
 
         YamlConfiguration defaultConfig = null;
-        if (defaultPath != null) {
-            defaultConfig = loadConfig(defaultPath);
-        }
+        if (defaultPath != null) defaultConfig = loadConfig(defaultPath);
 
-        YamlConfiguration classConfig = null;
-        String classPath = null;
+        while (objectClass != null) {
+            YamlConfiguration classConfig = null;
+            String classPath = null;
 
-        Config configClass = objectClass.getAnnotation(Config.class);
-        if (configClass != null) {
-            classPath = configClass.path();
-            classConfig = loadConfig(classPath);
-        }
-
-        Field[] fields = objectClass.getDeclaredFields();
-        for (Field field : fields) {
-            Config config = field.getAnnotation(Config.class);
-            if (config == null) continue;
-
-            String key = config.key().isEmpty() ? field.getName() : config.key();
-            if (baseKey != null) key = baseKey + "." + key;
-
-            YamlConfiguration fieldConfig;
-            String path;
-            if (!config.path().isEmpty()) {
-                path = config.path();
-                fieldConfig = loadConfig(path);
-            } else if (classConfig != null) {
-                path = classPath;
-                fieldConfig = classConfig;
-            } else {
-                path = defaultPath;
-                fieldConfig = defaultConfig;
+            Config configClass = objectClass.getAnnotation(Config.class);
+            if (configClass != null) {
+                classPath = configClass.path();
+                classConfig = loadConfig(classPath);
             }
 
-            if (fieldConfig == null) {
-                logger.warning("Could not load config file for key '" + key + "' of field '" + field.getName()
-                    + "' in class '" + objectClass.getName() + "'.");
-                continue;
-            }
+            Field[] fields = objectClass.getDeclaredFields();
+            for (Field field : fields) {
+                Config config = field.getAnnotation(Config.class);
+                if (config == null) continue;
 
-            if (!fieldConfig.contains(key)) {
-                if (config.required())
-                    logger.warning("Config '" + path + "' does not contain key '" + key + "' for field '"
-                        + field.getName() + "' in class '" + objectClass.getName() + "'.");
-                continue;
-            }
+                String key = config.key().isEmpty() ? field.getName() : config.key();
+                if (baseKey != null) key = baseKey + "." + key;
 
-            Resolve resolve = field.getAnnotation(Resolve.class);
-            Class<?> fieldType = field.getType();
-            Object obj;
-            if (resolve != null) {
-                Class<? extends Function<?, ?>> resolver = resolve.resolver();
-                Class<?> fromClass = resolve.from();
+                YamlConfiguration fieldConfig;
+                String path;
+                if (!config.path().isEmpty()) {
+                    path = config.path();
+                    fieldConfig = loadConfig(path);
+                } else if (classConfig != null) {
+                    path = classPath;
+                    fieldConfig = classConfig;
+                } else {
+                    path = defaultPath;
+                    fieldConfig = defaultConfig;
+                }
 
-                try {
-                    Method apply = resolver.getMethod("apply", fromClass);
-
-                    if (!fieldType.isAssignableFrom(apply.getReturnType())) {
-                        logger.warning("Resolver for key '" + key + "' of field '" + field.getName()
-                            + "' in class '" + objectClass.getName() + "' does not match target class.");
-                        continue;
-                    }
-
-                    Object from = fieldConfig.getObject(key, fromClass);
-                    if (from == null) {
-                        logger.warning("Invalid value for key '" + key + "' of field '" + field.getName()
-                            + "' in class '" + objectClass.getName() + "' from config '" + path + "'.");
-                        continue;
-                    }
-
-                    Function<?, ?> resolverInstance = resolver.newInstance();
-                    obj = apply.invoke(resolverInstance, from);
-                } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                    logger.warning("Invalid resolver for key '" + key + "' of field '" + field.getName()
+                if (fieldConfig == null) {
+                    logger.warning("Could not load config file for key '" + key + "' of field '" + field.getName()
                         + "' in class '" + objectClass.getName() + "'.");
                     continue;
                 }
-            } else obj = fieldConfig.getObject(key, fieldType);
 
-            if (obj == null) {
-                logger.warning("Invalid value for key '" + key + "' of field '" + field.getName() + "' in class '"
-                    + objectClass.getName() + "' from config '" + path + "'.");
-                continue;
+                if (!fieldConfig.contains(key)) {
+                    if (config.required())
+                        logger.warning("Config '" + path + "' does not contain key '" + key + "' for field '"
+                            + field.getName() + "' in class '" + objectClass.getName() + "'.");
+                    continue;
+                }
+
+                Resolve resolve = field.getAnnotation(Resolve.class);
+                Class<?> fieldType = field.getType();
+                Object obj;
+                if (resolve != null) {
+                    Class<? extends Function<?, ?>> resolver = resolve.resolver();
+                    Class<?> fromClass = resolve.from();
+
+                    try {
+                        Method apply = resolver.getMethod("apply", fromClass);
+
+                        if (!fieldType.isAssignableFrom(apply.getReturnType())) {
+                            logger.warning("Resolver for key '" + key + "' of field '" + field.getName()
+                                + "' in class '" + objectClass.getName() + "' does not match target class.");
+                            continue;
+                        }
+
+                        Object from = fieldConfig.getObject(key, fromClass);
+                        if (from == null) {
+                            logger.warning("Invalid value for key '" + key + "' of field '" + field.getName()
+                                + "' in class '" + objectClass.getName() + "' from config '" + path + "'.");
+                            continue;
+                        }
+
+                        Function<?, ?> resolverInstance = resolver.newInstance();
+                        obj = apply.invoke(resolverInstance, from);
+                    } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
+                        logger.warning("Invalid resolver for key '" + key + "' of field '" + field.getName()
+                            + "' in class '" + objectClass.getName() + "'.");
+                        continue;
+                    }
+                } else obj = fieldConfig.getObject(key, fieldType);
+
+                if (obj == null) {
+                    logger.warning("Invalid value for key '" + key + "' of field '" + field.getName() + "' in class '"
+                        + objectClass.getName() + "' from config '" + path + "'.");
+                    continue;
+                }
+
+                if (obj instanceof String && config.colorize())
+                    obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
+
+                try {
+                    field.setAccessible(true);
+                    field.set(object, obj);
+                } catch (IllegalAccessException | IllegalArgumentException e) {
+                    logger.warning("Unable to set value from key '" + key + "' of field '" + field.getName()
+                        + "' in class '" + objectClass.getName() + "' from config '" + path + "'."
+                    );
+                }
             }
 
-            if (obj instanceof String && config.colorize())
-                obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
-
-            try {
-                field.setAccessible(true);
-                field.set(object, obj);
-            } catch (IllegalAccessException | IllegalArgumentException e) {
-                logger.warning("Unable to set value from key '" + key + "' of field '" + field.getName()
-                    + "' in class '" + objectClass.getName() + "' from config '" + path + "'."
-                );
-            }
+            objectClass = objectClass.getSuperclass();
         }
     }
 
