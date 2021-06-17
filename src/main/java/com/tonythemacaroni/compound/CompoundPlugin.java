@@ -1,20 +1,15 @@
 package com.tonythemacaroni.compound;
 
-import java.net.URL;
 import java.io.File;
 import java.util.Map;
-import java.util.List;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.ArrayList;
 import java.lang.reflect.Field;
-import java.net.URLClassLoader;
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.function.Function;
-import java.net.MalformedURLException;
 import java.lang.reflect.InvocationTargetException;
 
 import com.google.common.collect.HashMultimap;
@@ -62,21 +57,8 @@ public class CompoundPlugin extends JavaPlugin {
             return;
         }
 
-        List<URL> urls = new ArrayList<>();
-        for (File componentFile : componentFiles) {
-            if (!componentFile.getName().endsWith(".jar")) continue;
-
-            try {
-                urls.add(componentFile.toURI().toURL());
-            } catch (MalformedURLException e) {
-                logger.severe("Unable to load component jar '" + componentFile.getName() + "'.");
-            }
-        }
-        URLClassLoader classLoader = new URLClassLoader(urls.toArray(new URL[0]), getClassLoader());
-
         try (
             ScanResult result = new ClassGraph()
-                .addClassLoader(classLoader)
                 .enableClassInfo()
                 .enableAnnotationInfo()
                 .acceptPackages(getClass().getPackage().getName())
@@ -193,7 +175,9 @@ public class CompoundPlugin extends JavaPlugin {
         try {
             Class<?> componentClass = classInfo.loadClass();
             Object component = componentClass.newInstance();
+
             componentData.setComponent(component);
+            components.put(componentData.getName(), componentData);
 
             injectConfig(component);
 
