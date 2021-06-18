@@ -28,10 +28,12 @@ java {
 }
 
 shadowJar {
-    archiveClassifier.set('')
+    configurations = [project.configurations.shadow]
 
     relocate 'io.github.classgraph', 'com.tonythemacaroni.compound.shaded.io.github.classgraph'
     relocate 'nonapi.io.github.classgraph', 'com.tonythemacaroni.compound.shaded.nonapi.io.github.classgraph'
+
+    archiveClassifier.set('')
 }
 
 publishing {
@@ -41,10 +43,6 @@ publishing {
             artifactId = 'Compound'
         }
     }
-}
-
-artifacts {
-    archives shadowJar
 }
 
 tasks.withType(JavaCompile) {
