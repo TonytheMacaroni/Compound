@@ -29,6 +29,7 @@ java {
 
 shadowJar {
     configurations = [project.configurations.shadow]
+    minimize()
 
     relocate 'io.github.classgraph', 'com.tonythemacaroni.compound.shaded.io.github.classgraph'
     relocate 'nonapi.io.github.classgraph', 'com.tonythemacaroni.compound.shaded.nonapi.io.github.classgraph'
