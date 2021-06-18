@@ -43,6 +43,10 @@ publishing {
     }
 }
 
+artifacts {
+    archives shadowJar
+}
+
 tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
