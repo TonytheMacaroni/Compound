@@ -160,6 +160,21 @@ public class CompoundPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        components.forEach((name, componentData) -> {
+            Object component = componentData.getComponent();
+
+            if (component instanceof LoadableComponent) {
+                logger.info("Unloading component '" + name + "'...");
+
+                try {
+                    ((LoadableComponent) component).unload();
+                } catch (Exception e) {
+                    logger.severe("Error when unloading component '" + name + "'.");
+                    e.printStackTrace();
+                }
+            }
+        });
+
         components = null;
         logger = null;
     }
@@ -196,7 +211,7 @@ public class CompoundPlugin extends JavaPlugin {
     }
 
     public void injectConfig(Object object) {
-        injectConfig(object, null, null,null);
+        injectConfig(object, null, null, null);
     }
 
     public void injectConfig(Object object, String defaultPath, String baseKey) {
