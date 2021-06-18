@@ -298,7 +298,7 @@ public class CompoundPlugin extends JavaPlugin {
                             + "' in class '" + objectClass.getName() + "'.");
                         continue;
                     }
-                } else obj = fieldConfig.getObject(key, fieldType);
+                } else obj = fieldConfig.getObject(key, primitiveToWrapper(fieldType));
 
                 if (obj == null) {
                     logger.warning("Invalid value for key '" + key + "' of field '" + field.getName() + "' in class '"
@@ -321,6 +321,22 @@ public class CompoundPlugin extends JavaPlugin {
 
             objectClass = objectClass.getSuperclass();
         }
+    }
+
+    private Class<?> primitiveToWrapper(Class<?> type) {
+        if (!type.isPrimitive()) return type;
+
+        if (type == int.class) return Integer.class;
+        if (type == long.class) return Long.class;
+        if (type == boolean.class) return Boolean.class;
+        if (type == byte.class) return Byte.class;
+        if (type == char.class) return Character.class;
+        if (type == float.class) return Float.class;
+        if (type == double.class) return Double.class;
+        if (type == short.class) return Short.class;
+        if (type == void.class) return Void.class;
+
+        return type;
     }
 
     public YamlConfiguration loadConfig(String path) {
