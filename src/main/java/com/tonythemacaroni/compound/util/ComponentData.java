@@ -3,19 +3,25 @@ package com.tonythemacaroni.compound.util;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
+import java.util.ArrayList;
+
 import io.github.classgraph.ClassInfo;
 
 @Getter
 @Setter
 public class ComponentData {
 
-    private boolean loaded = false;
     private Object component;
 
     private ClassInfo classInfo;
     private String description;
     private String[] depends;
     private String name;
+
+    private List<String> failReasons = new ArrayList<>();
+    private boolean loaded = false;
+    private String failException;
 
     public ComponentData(ClassInfo classInfo, String name, String description, String[] depends) {
         this.name = name;
@@ -28,6 +34,14 @@ public class ComponentData {
         this.loaded = loaded;
 
         classInfo = null;
+    }
+
+    public void addFailReason(String reason) {
+        failReasons.add(reason);
+    }
+
+    public void clearFailReasons() {
+        failReasons.clear();
     }
 
     @Override

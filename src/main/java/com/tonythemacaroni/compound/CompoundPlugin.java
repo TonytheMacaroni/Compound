@@ -12,6 +12,8 @@ import java.util.stream.Collectors;
 import java.util.function.Function;
 import java.lang.reflect.InvocationTargetException;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
 import com.google.common.collect.HashMultimap;
 
 import io.github.classgraph.ClassInfo;
@@ -161,6 +163,8 @@ public class CompoundPlugin extends JavaPlugin {
     @Override
     public void onDisable() {
         components.forEach((name, componentData) -> {
+            if (!componentData.isLoaded()) return;
+
             Object component = componentData.getComponent();
 
             if (component instanceof LoadableComponent) {
@@ -171,6 +175,8 @@ public class CompoundPlugin extends JavaPlugin {
                 } catch (Exception e) {
                     logger.severe("Error when unloading component '" + name + "'.");
                     e.printStackTrace();
+
+                    componentData.setFailException(ExceptionUtils.getStackTrace(e));
                 }
             }
         });
@@ -194,15 +200,28 @@ public class CompoundPlugin extends JavaPlugin {
             componentData.setComponent(component);
             components.put(componentData.getName(), componentData);
 
-            injectConfig(component);
+            if (!injectConfig(component)) {
+                String msg = "Unable to inject config into component '" + componentName + "'.";
+
+                logger.severe(msg);
+                componentData.addFailReason(msg);
+
+                return false;
+            }
 
             if (component instanceof LoadableComponent) {
                 LoadableComponent lc = (LoadableComponent) component;
-                if (!lc.load()) return false;
+                if (!lc.load()) {
+                    componentData.addFailReason("Load failed for component '" + componentName + "'.");
+                    return false;
+                }
             }
         } catch (Exception e) {
             logger.severe("Unexpected error when loading component '" + componentName + "'.");
+
+            componentData.setFailException(ExceptionUtils.getStackTrace(e));
             e.printStackTrace();
+
             return false;
         }
 
@@ -210,18 +229,22 @@ public class CompoundPlugin extends JavaPlugin {
         return true;
     }
 
-    public void injectConfig(Object object) {
-        injectConfig(object, null, null, null);
+    public boolean injectConfig(Object object) {
+        return injectConfig(object, null, null, null, null);
     }
 
-    public void injectConfig(Object object, String defaultPath, String baseKey) {
+    public boolean injectConfig(Object object, String defaultPath, String baseKey) {
         YamlConfiguration defaultConfig = null;
         if (defaultPath != null) defaultConfig = loadConfig(defaultPath);
 
-        injectConfig(object, defaultConfig, defaultPath, baseKey);
+        return injectConfig(object, null, defaultConfig, defaultPath, baseKey);
     }
 
-    public void injectConfig(Object object, ConfigurationSection defaultConfig, String defaultPath, String baseKey) {
+    public boolean injectConfig(Object object, ConfigurationSection defaultConfig, String defaultPath, String baseKey) {
+        return injectConfig(object, null, defaultConfig, defaultPath, baseKey);
+    }
+
+    public boolean injectConfig(Object object, ComponentData componentData, ConfigurationSection defaultConfig, String defaultPath, String baseKey) {
         Class<?> objectClass = object.getClass();
 
         while (objectClass != Object.class) {
@@ -238,6 +261,8 @@ public class CompoundPlugin extends JavaPlugin {
             for (Field field : fields) {
                 Config config = field.getAnnotation(Config.class);
                 if (config == null) continue;
+
+                boolean required = config.required();
 
                 String key = config.key().isEmpty() ? field.getName() : config.key();
                 if (baseKey != null) key = baseKey + "." + key;
@@ -256,15 +281,30 @@ public class CompoundPlugin extends JavaPlugin {
                 }
 
                 if (fieldConfig == null) {
-                    logger.warning("Could not load config file for key '" + key + "' of field '" + field.getName()
-                        + "' in class '" + objectClass.getName() + "'.");
+                    if (required) {
+                        String msg = "Could not load config file for key '" + key + "' of field '" + field.getName()
+                            + "' in class '" + objectClass.getName() + "'.";
+
+                        if (componentData != null) componentData.addFailReason(msg);
+                        logger.warning(msg);
+
+                        return false;
+                    }
+
                     continue;
                 }
 
                 if (!fieldConfig.contains(key)) {
-                    if (config.required())
-                        logger.warning("Config '" + path + "' does not contain key '" + key + "' for field '"
-                            + field.getName() + "' in class '" + objectClass.getName() + "'.");
+                    if (required) {
+                        String msg = "Config '" + path + "' does not contain required key '" + key + "' for field '"
+                            + field.getName() + "' in class '" + objectClass.getName() + "'.";
+
+                        if (componentData != null) componentData.addFailReason(msg);
+                        logger.warning(msg);
+
+                        return false;
+                    }
+
                     continue;
                 }
 
@@ -279,30 +319,66 @@ public class CompoundPlugin extends JavaPlugin {
                         Method apply = resolver.getMethod("apply", fromClass);
 
                         if (!fieldType.isAssignableFrom(apply.getReturnType())) {
-                            logger.warning("Resolver for key '" + key + "' of field '" + field.getName()
-                                + "' in class '" + objectClass.getName() + "' does not match target class.");
+                            String msg = "Resolver for key '" + key + "' of field '" + field.getName() + "' in class '"
+                                + objectClass.getName() + "' does not match target class.";
+
+                            logger.warning(msg);
+
+                            if (required) {
+                                if (componentData != null) componentData.addFailReason(msg);
+                                return false;
+                            }
+
                             continue;
                         }
 
                         Object from = fieldConfig.getObject(key, fromClass);
                         if (from == null) {
-                            logger.warning("Invalid value for key '" + key + "' of field '" + field.getName()
-                                + "' in class '" + objectClass.getName() + "' from config '" + path + "'.");
+                            String msg = "Invalid or missing value for key '" + key + "' of field '" + field.getName()
+                                + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
+
+                            logger.warning(msg);
+
+                            if (required) {
+                                if (componentData != null) componentData.addFailReason(msg);
+                                return false;
+                            }
+
                             continue;
                         }
 
                         Function<?, ?> resolverInstance = resolver.newInstance();
                         obj = apply.invoke(resolverInstance, from);
                     } catch (NoSuchMethodException | InstantiationException | IllegalAccessException | InvocationTargetException e) {
-                        logger.warning("Invalid resolver for key '" + key + "' of field '" + field.getName()
-                            + "' in class '" + objectClass.getName() + "'.");
+                        String msg = "Invalid resolver for key '" + key + "' of field '" + field.getName()
+                            + "' in class '" + objectClass.getName() + "'.";
+
+                        logger.warning(msg);
+
+                        if (required) {
+                            if (componentData != null) {
+                                componentData.addFailReason(msg);
+                                componentData.setFailException(ExceptionUtils.getStackTrace(e));
+                            }
+
+                            return false;
+                        }
+
                         continue;
                     }
                 } else obj = fieldConfig.getObject(key, primitiveToWrapper(fieldType));
 
                 if (obj == null) {
-                    logger.warning("Invalid value for key '" + key + "' of field '" + field.getName() + "' in class '"
-                        + objectClass.getName() + "' from config '" + path + "'.");
+                    if (required) {
+                        String msg = "Invalid or missing value for key '" + key + "' of field '" + field.getName()
+                            + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
+
+                        logger.warning(msg);
+
+                        if (componentData != null) componentData.addFailReason(msg);
+                        return false;
+                    }
+
                     continue;
                 }
 
@@ -313,14 +389,26 @@ public class CompoundPlugin extends JavaPlugin {
                     field.setAccessible(true);
                     field.set(object, obj);
                 } catch (IllegalAccessException | IllegalArgumentException e) {
-                    logger.warning("Unable to set value from key '" + key + "' of field '" + field.getName()
-                        + "' in class '" + objectClass.getName() + "' from config '" + path + "'."
-                    );
+                    String msg = "Unable to set value from key '" + key + "' of field '" + field.getName()
+                        + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
+
+                    logger.warning(msg);
+
+                    if (required) {
+                        if (componentData != null) {
+                            componentData.addFailReason(msg);
+                            componentData.setFailException(ExceptionUtils.getStackTrace(e));
+                        }
+
+                        return false;
+                    }
                 }
             }
 
             objectClass = objectClass.getSuperclass();
         }
+
+        return true;
     }
 
     private Class<?> primitiveToWrapper(Class<?> type) {
