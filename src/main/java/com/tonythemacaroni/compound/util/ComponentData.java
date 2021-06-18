@@ -37,7 +37,7 @@ public class ComponentData {
     }
 
     public void addFailReason(String reason) {
-        failReasons.add(reason);
+        failReasons.add(0, reason);
     }
 
     public void clearFailReasons() {
