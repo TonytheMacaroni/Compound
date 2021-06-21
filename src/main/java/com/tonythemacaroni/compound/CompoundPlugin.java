@@ -429,8 +429,6 @@ public class CompoundPlugin extends JavaPlugin {
 
     public YamlConfiguration loadConfig(String path) {
         File file = new File(getDataFolder(), path);
-        if (!file.exists()) return null;
-
         return YamlConfiguration.loadConfiguration(file);
     }
 
