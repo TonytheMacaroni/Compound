@@ -332,9 +332,9 @@ public class CompoundPlugin extends JavaPlugin {
                             continue;
                         }
 
-                        Object from = fieldConfig.getObject(key, fromClass);
+                        Object from = fieldConfig.get(key);
                         if (from == null) {
-                            String msg = "Invalid or missing value for key '" + key + "' of field '" + field.getName()
+                            String msg = "Missing value for key '" + key + "' of field '" + field.getName()
                                 + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
 
                             logger.warning(msg);
@@ -366,11 +366,11 @@ public class CompoundPlugin extends JavaPlugin {
 
                         continue;
                     }
-                } else obj = fieldConfig.getObject(key, primitiveToWrapper(fieldType));
+                } else obj = fieldConfig.get(key);
 
                 if (obj == null) {
                     if (required) {
-                        String msg = "Invalid or missing value for key '" + key + "' of field '" + field.getName()
+                        String msg = "Missing value for key '" + key + "' of field '" + field.getName()
                             + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
 
                         logger.warning(msg);
@@ -382,8 +382,24 @@ public class CompoundPlugin extends JavaPlugin {
                     continue;
                 }
 
+                if (Number.class.isAssignableFrom(fieldType))
+                    obj = convertNumber(obj, fieldType);
+
                 if (obj instanceof String && config.colorize())
                     obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
+
+                if (!fieldType.isInstance(obj) || (fieldType.isPrimitive() && !primitiveToWrapper(fieldType).isInstance(obj))) {
+                    String msg = "Invalid value for key '" + key + "' of field '" + field.getName()
+                        + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
+                    logger.warning(msg);
+
+                    if (required) {
+                        if (componentData != null) componentData.addFailReason(msg);
+                        return false;
+                    }
+
+                    continue;
+                }
 
                 try {
                     field.setAccessible(true);
@@ -409,6 +425,21 @@ public class CompoundPlugin extends JavaPlugin {
         }
 
         return true;
+    }
+
+    private Object convertNumber(Object obj, Class<?> numberClass) {
+        if (numberClass.isInstance(obj)) return obj;
+        if (!(obj instanceof Number)) return null;
+
+        Number number = (Number) obj;
+        if (numberClass == int.class || numberClass == Integer.class) return number.intValue();
+        if (numberClass == long.class || numberClass == Long.class) return number.longValue();
+        if (numberClass == byte.class || numberClass == Byte.class) return number.byteValue();
+        if (numberClass == float.class || numberClass == Float.class) return number.floatValue();
+        if (numberClass == double.class || numberClass == Double.class) return number.doubleValue();
+        if (numberClass == short.class || numberClass == Short.class) return number.shortValue();
+
+        return null;
     }
 
     private Class<?> primitiveToWrapper(Class<?> type) {
