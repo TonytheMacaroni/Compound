@@ -333,8 +333,8 @@ public class CompoundPlugin extends JavaPlugin {
                         }
 
                         Object from = fieldConfig.get(key);
-                        if (from == null) {
-                            String msg = "Missing value for key '" + key + "' of field '" + field.getName()
+                        if (fromClass.isInstance(from)) {
+                            String msg = "Invalid or missing value for key '" + key + "' of field '" + field.getName()
                                 + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
 
                             logger.warning(msg);
@@ -382,13 +382,14 @@ public class CompoundPlugin extends JavaPlugin {
                     continue;
                 }
 
+                fieldType = primitiveToWrapper(fieldType);
                 if (Number.class.isAssignableFrom(fieldType))
                     obj = convertNumber(obj, fieldType);
 
                 if (obj instanceof String && config.colorize())
                     obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
 
-                if (!fieldType.isInstance(obj) || (fieldType.isPrimitive() && !primitiveToWrapper(fieldType).isInstance(obj))) {
+                if (!fieldType.isInstance(obj)) {
                     String msg = "Invalid value for key '" + key + "' of field '" + field.getName()
                         + "' in class '" + objectClass.getName() + "' from config '" + path + "'.";
                     logger.warning(msg);
@@ -429,7 +430,7 @@ public class CompoundPlugin extends JavaPlugin {
 
     private Object convertNumber(Object obj, Class<?> numberClass) {
         if (numberClass.isInstance(obj)) return obj;
-        if (!(obj instanceof Number)) return null;
+        if (!(obj instanceof Number)) return obj;
 
         Number number = (Number) obj;
         if (numberClass == int.class || numberClass == Integer.class) return number.intValue();
@@ -439,7 +440,7 @@ public class CompoundPlugin extends JavaPlugin {
         if (numberClass == double.class || numberClass == Double.class) return number.doubleValue();
         if (numberClass == short.class || numberClass == Short.class) return number.shortValue();
 
-        return null;
+        return obj;
     }
 
     private Class<?> primitiveToWrapper(Class<?> type) {
