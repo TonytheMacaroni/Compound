@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.logging.Logger;
@@ -22,7 +24,8 @@ import io.github.classgraph.ScanResult;
 import io.github.classgraph.ClassInfoList;
 import io.github.classgraph.AnnotationParameterValueList;
 
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
+
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -33,6 +36,8 @@ import com.tonythemacaroni.compound.annotations.Resolve;
 import com.tonythemacaroni.compound.util.LoadableComponent;
 
 public class CompoundPlugin extends JavaPlugin {
+
+    private static final Pattern COLOR_MATCHER = Pattern.compile("&([0-9a-fA-F]|#[0-9a-fA-F]{6})");
 
     protected Map<String, ComponentData> components;
     protected Logger logger;
@@ -386,8 +391,20 @@ public class CompoundPlugin extends JavaPlugin {
                 if (Number.class.isAssignableFrom(fieldType))
                     obj = convertNumber(obj, fieldType);
 
-                if (obj instanceof String && config.colorize())
-                    obj = ChatColor.translateAlternateColorCodes('&', (String) obj);
+                if (obj instanceof String && config.colorize()) {
+                    Matcher matcher = COLOR_MATCHER.matcher((String) obj);
+                    StringBuffer buffer = new StringBuffer();
+
+                    while (matcher.find()) {
+                        try {
+                            matcher.appendReplacement(buffer, ChatColor.of(matcher.group(1)).toString());
+                        } catch (IllegalArgumentException e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    obj = matcher.appendTail(buffer).toString();
+                }
 
                 if (!fieldType.isInstance(obj)) {
                     String msg = "Invalid value for key '" + key + "' of field '" + field.getName()
