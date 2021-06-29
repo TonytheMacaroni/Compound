@@ -397,7 +397,12 @@ public class CompoundPlugin extends JavaPlugin {
 
                     while (matcher.find()) {
                         try {
-                            matcher.appendReplacement(buffer, ChatColor.of(matcher.group(1)).toString());
+                            String code = matcher.group(1);
+
+                            if (code.length() == 1)
+                                matcher.appendReplacement(buffer, ChatColor.getByChar(code.charAt(0)).toString());
+                            else
+                                matcher.appendReplacement(buffer, ChatColor.of(code).toString());
                         } catch (IllegalArgumentException e) {
                             e.printStackTrace();
                         }
