@@ -37,7 +37,7 @@ import com.tonythemacaroni.compound.util.LoadableComponent;
 
 public class CompoundPlugin extends JavaPlugin {
 
-    private static final Pattern COLOR_MATCHER = Pattern.compile("&([0-9a-fA-F]|#[0-9a-fA-F]{6})");
+    private static final Pattern COLOR_MATCHER = Pattern.compile("&([0-9a-fk-oA-FK-OrRxX]|#[0-9a-fA-F]{6})");
 
     protected Map<String, ComponentData> components;
     protected Logger logger;
