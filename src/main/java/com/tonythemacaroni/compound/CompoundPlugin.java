@@ -45,25 +45,9 @@ public class CompoundPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         logger = getLogger();
-
         components = new HashMap<>();
 
-        File componentFolder = new File(getDataFolder(), "components");
-        if (!componentFolder.exists()) {
-            if (!componentFolder.mkdir()) {
-                logger.severe("Unable to create component folder.");
-                return;
-            }
-        }
-
         logger.info("Loading components...");
-
-        File[] componentFiles = componentFolder.listFiles();
-        if (componentFiles == null) {
-            logger.severe("Unable to load components.");
-            return;
-        }
-
         try (
             ScanResult result = new ClassGraph()
                 .enableClassInfo()
